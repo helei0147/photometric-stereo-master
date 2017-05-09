@@ -45,6 +45,8 @@ normal_matrix = zeros(valid_pixel_count,3);
 para_num=9;
 parameter_buffer=zeros(valid_pixel_count,para_num);
 t0 = cputime;
+iter_buffer = zeros(size(I,1),1);
+pixel_error_buffer = zeros(size(I,1),1);
 for i=1:size(I,1)
     if mod(i,100)==0
         fprintf('pixel:%d, used up %f s\n',i,cputime-t0);
@@ -62,8 +64,6 @@ for i=1:size(I,1)
     
 %     normalize the normal of this pixel
     n=n/norm(n);
-    
-%----------------------------------------------------------------------------
     
     raw_err = nn(i,:)*n;
     fprintf('raw PS error:%f\n',acos(raw_err)/pi*180);
@@ -118,42 +118,32 @@ for i=1:size(I,1)
         [parameter,fval,exitflag,output]=fmincon(func_para,para,[],[],[],[],[],[],[],options);
         para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_buffer);
         temp_para_buffer(iter,1:para_num)=parameter;
-        temp_para_buffer(iter,para_num+1)=para_error;
-%         fprintf('parameter:');
-%         parameter'
-%         fprintf('\nparameter_error: %f\n',para_error);
-        
-        
-%         optimize normal of this pixel
-        
-        prmt=n;
-        options=optimoptions('fmincon','Algorithm','interior-point','display','notify');
-        func=@(normal)optimize_n(normal,h,y,valid_light_num,para_num,L,parameter,intense);
-        [new_n,fval,exitflag,output]=fmincon(func,prmt,[],[],[],[],[],[],@normal_constraint,options);
-        gt=nn(i,:);
-        normal_error = acos(gt*new_n)/pi*180;
-%         ----------------------
-        error = normal_error;
-%         ----------------------
-        n=new_n;
-%         fprintf('pixel:%d,iter:%d,degree_error:%f\n',i,iter,normal_error)
-%         disp(['normal:',num2str(n'),'n_err:',num2str(error)]);
+        temp_para_buffer(iter,para_num+1)=para_error;       
+        [new_error, n] =optimize_normal(n,h,y,valid_light_num,para_num,L,parameter,intense,nn,i,error);
+
+        if new_error>error
+            break
+        else
+            error=new_error;
+        end
+
         temp_n_buffer(iter,1:3)=n';
         temp_n_buffer(iter,4)=error;
         iter=iter+1;
 %         fprintf('pixel:%d iter:%d\n',i,iter);
+        fprintf('iter:%d,error:%f\n',iter,error);
         if iter>iter_max
             break
         end
     end
+    iter_buffer(i) = iter;
     
-%----------------------------------------------------------------------------
     normal_matrix(i,:)=n';
     parameter_buffer(i,:)=parameter';
     pixel_error = acos(nn(i,:)*n)/pi*180;
+    pixel_error_buffer(i)=pixel_error;
     fprintf('pixel %d, error %f\n',i,pixel_error);
-%     fprintf('parameter error:%f\n',para_error);
-%     fprintf('iter: %d\n',iter);
+    
 end
 
 cos_error_vector= sum(normal_matrix.*nn,2);
