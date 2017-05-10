@@ -14,7 +14,6 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     L = valid_light;
     valid_light_num = size(L,1);
     
-    iter_max = 100;
     para_num = 9;
     v=zeros(size(valid_light));
     v(:,3)=-1;
@@ -37,55 +36,33 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     
     
 %     init error with 100 to jump in the loop.
-    iter = 1;
     error = 100;
-    temp_n_buffer=zeros(iter_max,4);
-    temp_para_buffer = zeros(iter_max,para_num+1);
-%     new_normal = zeros(size(raw_normal));
-    while error>1e-7
 %         optimize parameters.
-        to_cal_parameter=zeros(valid_light_num,para_num);
+    to_cal_parameter=zeros(valid_light_num,para_num);
 %         after each loop, n is updated, recalculate x
-        x=h*raw_normal;
+    x=h*raw_normal;
 %     parameter matrix, first dimension is light index, second dimension is
 %     9 or 16 parameters for this light condition.
-        for l_idx=1:valid_light_num
-            t_x=[1;x(l_idx);x(l_idx)^2];
-            t_y=[1,y(l_idx),y(l_idx)^2];
-            xy_matrix=t_x*t_y;% 3 x 3 matrix
-            to_cal_parameter(l_idx,:)=xy_matrix(:)';
-        end
-%     use argmin to optimize
-        to_solve=zeros(size(to_cal_parameter));
-        light_intensity_vector = L*raw_normal;
-        for para_idx = 1:para_num
-            to_solve(:,para_idx)=to_cal_parameter(:,para_idx).*light_intensity_vector;
-        end
-        para=zeros(para_num,1);
-        options=optimoptions('fmincon','Algorithm','interior-point','display','notify');
-        func_para = @(para)optimize_parameter(para,to_cal_parameter,light_intensity_vector,valid_I_pixelwise);
-        [parameter,~,~,~]=fmincon(func_para,para,[],[],[],[],[],[],[],options);
-        para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_I_pixelwise);
-        temp_para_buffer(iter,1:para_num)=parameter;
-        temp_para_buffer(iter,para_num+1)=para_error;       
-%         optimize normal
-        [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
-%         fprintf('%f',new_error);
-        if error-new_error<1e-6
-            break
-        else
-            error=new_error;
-        end
-
-        temp_n_buffer(iter,1:3)=new_normal';
-        temp_n_buffer(iter,4)=new_error;
-        iter=iter+1;
-%         fprintf('pixel:%d iter:%d\n',i,iter);
-        if iter>iter_max
-            break
-        end
+    for l_idx=1:valid_light_num
+        t_x=[1;x(l_idx);x(l_idx)^2];
+        t_y=[1,y(l_idx),y(l_idx)^2];
+        xy_matrix=t_x*t_y;% 3 x 3 matrix
+        to_cal_parameter(l_idx,:)=xy_matrix(:)';
     end
-    
+%     use argmin to optimize
+    to_solve=zeros(size(to_cal_parameter));
+    light_intensity_vector = L*raw_normal;
+    for para_idx = 1:para_num
+        to_solve(:,para_idx)=to_cal_parameter(:,para_idx).*light_intensity_vector;
+    end
+    para=zeros(para_num,1);
+    options=optimoptions('fmincon','Algorithm','interior-point','display','notify');
+    func_para = @(para)optimize_parameter(para,to_cal_parameter,light_intensity_vector,valid_I_pixelwise);
+    [parameter,~,~,~]=fmincon(func_para,para,[],[],[],[],[],[],[],options);
+    para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_I_pixelwise);     
+%         optimize normal
+    [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
+
     optimized_normal{1} = new_normal;
     pixel_parameter{1} = parameter';
     optimized_error{1} = new_error;
