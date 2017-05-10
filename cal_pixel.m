@@ -6,6 +6,7 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
 % raw_normal is the normal get from vanilla Photometric Stereo
 % valid_light is the L_low
 % valid_I_pixelwise is I_low
+    t0 = cputime;
     gt = cell2mat(ground_truth);
     raw_normal = cell2mat(p_raw_normal);
     valid_light = cell2mat(p_valid_light);
@@ -68,8 +69,8 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
         temp_para_buffer(iter,1:para_num)=parameter;
         temp_para_buffer(iter,para_num+1)=para_error;       
 %         optimize normal
-        [new_error, new_normal] =optimize_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
-
+        [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
+%         fprintf('%f',new_error);
         if error-new_error<1e-6
             break
         else
@@ -77,10 +78,9 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
         end
 
         temp_n_buffer(iter,1:3)=new_normal';
-        temp_n_buffer(iter,4)=error;
+        temp_n_buffer(iter,4)=new_error;
         iter=iter+1;
 %         fprintf('pixel:%d iter:%d\n',i,iter);
-        fprintf('iter:%d,error:%f\n',iter,error);
         if iter>iter_max
             break
         end
@@ -88,9 +88,9 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     
     optimized_normal{1} = new_normal;
     pixel_parameter{1} = parameter';
-    optimized_error{1} = acos(gt*new_normal)/pi*180;
+    optimized_error{1} = new_error;
 
-%     fprintf('pixel %d, error %f\n',i,pixel_error);
-
+    fprintf('used time %f s, error %f\n',cputime-t0,new_error);
+    disp([gt,new_normal']);
 end
 
