@@ -44,18 +44,21 @@ normal_matrix = zeros(valid_pixel_count,3);
 % high frequency part of I is cut-off
 para_num=9;
 parameter_buffer=zeros(valid_pixel_count,para_num);
-t0 = cputime;
-iter_buffer = zeros(size(I,1),1);
-pixel_error_buffer = zeros(size(I,1),1);
-ground_truth_normal_buffer = num2cell(nn,2);
-raw_normal_buffer = cell(size(I,1),1);
-valid_light_buffer = cell(size(I,1),1);
-valid_I_pixelwise_buffer = cell(size(I,1),1);
-for i=1:size(I,1)
+p_num = size(I,1);
+cal_mask = 1:100:p_num;
+selected_count = size(cal_mask,2);
+iter_buffer = zeros(p_num,1);
+pixel_error_buffer = zeros(selected_count,1);
+ground_truth_normal_buffer = num2cell(nn(cal_mask,:),2);
+raw_normal_buffer = cell(selected_count,1);
+valid_light_buffer = cell(selected_count,1);
+valid_I_pixelwise_buffer = cell(selected_count,1);
+for i=1:floor(p_num/100)
 %     if mod(i,100)==0
 %         fprintf('pixel:%d, used up %f s\n',i,cputime-t0);
 %     end
-    buffer=I(i,:);
+    selected_I = I(cal_mask,:);
+    buffer=selected_I(i,:);
     buffer_mask=buffer>0; % a row mask
     valid_buffer=buffer(buffer_mask)'; % a column
     valid_I_pixelwise_buffer{i} = valid_buffer;
