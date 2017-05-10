@@ -1,5 +1,6 @@
-function error = error_n(n1,n2,n3,h,y,valid_light_num,para_num,L,parameter,intense)
+function error = error_n(n1,n2,n3,h,y,L,parameter,intense)
     normal = [n1;n2;n3];
+    valid_light_num = size(L,1);
     x=h*normal;
 %     to_cal_parameter=zeros(valid_light_num,para_num);
     t_x = [ones(valid_light_num,1),x,x.^2];
