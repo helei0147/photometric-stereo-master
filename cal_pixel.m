@@ -59,15 +59,16 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     options=optimoptions('fmincon','Algorithm','interior-point','display','notify');
     func_para = @(para)optimize_parameter(para,to_cal_parameter,light_intensity_vector,valid_I_pixelwise);
     [parameter,~,~,~]=fmincon(func_para,para,[],[],[],[],[],[],[],options);
-    para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_I_pixelwise);     
+%     para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_I_pixelwise);     
 %         optimize normal
     [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
 
     optimized_normal{1} = new_normal;
     pixel_parameter{1} = parameter';
     optimized_error{1} = new_error;
-
+    
     fprintf('used time %f s, error %f\n',cputime-t0,new_error);
+    fprintf('raw_error: %f\n',acos(gt*raw_normal)/pi*180);
     disp([gt,new_normal']);
 end
 

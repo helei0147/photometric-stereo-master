@@ -26,15 +26,21 @@ I = zeros(valid_pixel_count, light_number); % Image buffer to save
 % grayscale pixels. The third dimension is light index.
 
 for i=1:light_number
+    % hdr file
     filename=sprintf('%s/%d.rgb',image_path,i-1);
-    fid=fopen(filename,'r');
-    img = fread(fid,inf,'float');
-    fclose(fid);
+    img = load_rgb(filename);
+%     % ldr file
+%     filename = sprintf('%s/%d.png',image_path,i-1);
+%     img = load_png(filename, mask);
+    
+        
+    
+    
     img=reshape(img,3,[])';
     R = img(:,1);
     G = img(:,2);
     B = img(:,3);
-    
+    % to grayscale
     gs_img = 0.2989 * R + 0.5870 * G + 0.1140 * B ;
     img_median=median(gs_img);
     gs_img(gs_img>img_median)=-1;
@@ -53,6 +59,7 @@ ground_truth_normal_buffer = num2cell(nn(cal_mask,:),2);
 raw_normal_buffer = cell(selected_count,1);
 valid_light_buffer = cell(selected_count,1);
 valid_I_pixelwise_buffer = cell(selected_count,1);
+cutoff_nn = nn(cal_mask,:);
 for i=1:floor(p_num/100)
 %     if mod(i,100)==0
 %         fprintf('pixel:%d, used up %f s\n',i,cputime-t0);
@@ -74,8 +81,8 @@ for i=1:floor(p_num/100)
 %     normalize the normal of this pixel
     n=n/norm(n);
     raw_normal_buffer{i} = n;
-    raw_err = nn(i,:)*n;
-%     fprintf('raw PS error:%f\n',acos(raw_err)/pi*180);
+    raw_err = cutoff_nn(i,:)*n;
+    fprintf('raw PS error:%f\n',acos(raw_err)/pi*180);
 %     v is valid_light_number x 3 amtrix, each row is [0,0,-1]
 end
 
