@@ -10,6 +10,7 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     gt = cell2mat(ground_truth);
     raw_normal = cell2mat(p_raw_normal);
     valid_light = cell2mat(p_valid_light);
+    
     valid_I_pixelwise = cell2mat(p_valid_I_pixelwise);
     L = valid_light;
     valid_light_num = size(L,1);
@@ -43,12 +44,7 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     x=h*raw_normal;
 %     parameter matrix, first dimension is light index, second dimension is
 %     9 or 16 parameters for this light condition.
-    for l_idx=1:valid_light_num
-        t_x=[1;x(l_idx);x(l_idx)^2];
-        t_y=[1,y(l_idx),y(l_idx)^2];
-        xy_matrix=t_x*t_y;% 3 x 3 matrix
-        to_cal_parameter(l_idx,:)=xy_matrix(:)';
-    end
+    to_cal_parameter = [ones(valid_light_num,1), y, y.*y, x, x.*y, x.*y.*y, x.*x, x.*x.*y, x.*x.*y.*y];
 %     use argmin to optimize
     to_solve=zeros(size(to_cal_parameter));
     light_intensity_vector = L*raw_normal;
@@ -61,9 +57,14 @@ function [ optimized_normal, optimized_error, pixel_parameter ] = ...
     [parameter,~,~,~]=fmincon(func_para,para,[],[],[],[],[],[],[],options);
 %     para_error = norm((to_cal_parameter*parameter).*light_intensity_vector-valid_I_pixelwise);     
 %         optimize normal
-    [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
+% % % %     [new_error, new_normal] =opt_normal(raw_normal,h,y,L,parameter,valid_I_pixelwise,gt,error);
 
-    optimized_normal{1} = new_normal;
+    x=zeros(valid_light_num,1);
+    [xerror,new_x] = x_target_fun(x,y,raw_normal,L,parameter,valid_I_pixelwise);
+    new_nx = n_target_fun(n, L, new_x);
+    new_error = acos(gt*new_nx)/pi*180;
+    
+    optimized_normal{1} = new_nx;
     pixel_parameter{1} = parameter';
     optimized_error{1} = new_error;
     
