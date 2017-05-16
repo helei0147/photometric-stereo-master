@@ -1,8 +1,8 @@
 clear all
-image_path='55_6';
+image_path='4_6_noscale';
 light_file='light_89.txt';
 mat_file = 'rabbit.mat';
-
+isldr = 1; 
 name = image_path;
 image_path = sprintf('data/images/%s',image_path);
 light_file = sprintf('data/lighting/%s', light_file);
@@ -26,11 +26,14 @@ I = zeros(valid_pixel_count, light_number); % Image buffer to save
 % grayscale pixels. The third dimension is light index.
 
 for i=1:light_number
-    filename=sprintf('%s/%d.rgb',image_path,i-1);
-    fid=fopen(filename,'r');
-    img = fread(fid,inf,'float');
-    fclose(fid);
-    img=reshape(img,3,[])';
+    if isldr
+        filename = sprintf('%s/%d.png',image_path,i-1);
+        img = load_png(filename,mask);
+%         psu_to_ldr('curve.txt',img);
+    else
+        filename=sprintf('%s/%d.rgb',image_path,i-1);
+        img = load_rgb(filename);
+    end
     R = img(:,1);
     G = img(:,2);
     B = img(:,3);
@@ -45,6 +48,7 @@ total_error=0;
 % high frequency part of I is cut-off
 para_num=9;
 parameter_buffer=zeros(valid_pixel_count,para_num);
+error_buffer = zeros(valid_pixel_count,1);
 t0 = cputime;
 for i=1:size(I,1)
     if mod(i,100)==0
@@ -67,6 +71,7 @@ for i=1:size(I,1)
 
     normal_matrix(i,:)=n';
     pixel_error = acos(nn(i,:)*n)/pi*180;
+    error_buffer(i) = pixel_error;
     fprintf('pixel %d, error %f\n',i,pixel_error);
 %     fprintf('parameter error:%f\n',para_error);
 %     fprintf('iter: %d\n',iter);
@@ -75,6 +80,7 @@ end
 cos_error_vector= sum(normal_matrix.*nn,2);
 cos_error_vector(isnan(cos_error_vector))=1;
 norm_degree_error = sum(acos(cos_error_vector)/pi*180)/valid_pixel_count
+sum(error_buffer)/valid_pixel_count
 % [pic_height,pic_width]=size(mask);
 % first_dim_vector=floor(v_ind/pic_height)+1;
 % second_dim_vector=mod(v_ind,pic_height)+1;
