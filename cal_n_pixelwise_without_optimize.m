@@ -1,5 +1,5 @@
 clear all
-image_path='4_6_noscale';
+image_path='71_6_noscale';
 light_file='light_89.txt';
 mat_file = 'rabbit.mat';
 isldr = 1; 
@@ -80,7 +80,7 @@ end
 cos_error_vector= sum(normal_matrix.*nn,2);
 cos_error_vector(isnan(cos_error_vector))=1;
 norm_degree_error = sum(acos(cos_error_vector)/pi*180)/valid_pixel_count
-sum(error_buffer)/valid_pixel_count
+
 % [pic_height,pic_width]=size(mask);
 % first_dim_vector=floor(v_ind/pic_height)+1;
 % second_dim_vector=mod(v_ind,pic_height)+1;
