@@ -88,7 +88,9 @@ for i=1:light_number
     gs_img = 0.2989 * R + 0.5870 * G + 0.1140 * B ;
     origin_I(:,i) = gs_img;
 end
+
 if is_ae
+%     origin_I = origin_I./kron(ones(size(origin_I,1),1),exposure_scale');
     e_matname = sprintf('%s/exposure_scale.mat',ae_path);
     save(e_matname,'exposure_scale');
 end
@@ -98,8 +100,12 @@ end
 % end
 for i = 1:light_number
     gs_img = origin_I(:,i);
-    img_median=median(gs_img);
-    gs_img(gs_img>img_median)=-1;
+    threshold_percent = 0.3;% pixels remain
+    sorted_img = sort(gs_img);
+    zero_num = size(find(sorted_img<1e-6),1);
+    p_num = size(sorted_img,1);
+    threshold = sorted_img(uint32((p_num-zero_num)*threshold_percent)+zero_num);
+    gs_img(gs_img>threshold)=-1;
     I(:,i)=gs_img;
 end
 normal_matrix = zeros(valid_pixel_count,3);
