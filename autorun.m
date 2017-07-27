@@ -4,7 +4,7 @@ for i = 0:99
     light_file='lights_89.txt';
     mat_file = 'rabbit.mat';
     isldr = 0; 
-%     [error_hdr(i+1),~] = cal_n_pixelwise_without_optimize(image_path,light_file,mat_file,isldr,0);
-    [error_ae(i+1), exposure(:,i+1)] = cal_n_pixelwise_without_optimize(image_path,light_file,mat_file,isldr,1);
+    [error_hdr(i+1),~, hdr_nan(i+1)] = cal_n_pixelwise_without_optimize(image_path,light_file,mat_file,isldr,0);
+    [error_ae(i+1), exposure(:,i+1), ae_nan(i+1)] = cal_n_pixelwise_without_optimize(image_path,light_file,mat_file,isldr,1);
 end
-save exposure.mat exposure
+save('exposure_89.mat','exposure');
