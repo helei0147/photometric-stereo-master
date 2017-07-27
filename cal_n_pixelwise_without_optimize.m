@@ -1,4 +1,4 @@
-function [ norm_degree_error, exposure_scale ] = cal_n_pixelwise_without_optimize(image_path, light_file, mat_file, isldr, is_ae)
+function [ norm_degree_error, exposure_scale, nan_size ] = cal_n_pixelwise_without_optimize(image_path, light_file, mat_file, isldr, is_ae)
 % image_path='rabbit_all/lights_89/hdr/16_6';
 % light_file='lights_89.txt';
 % mat_file = 'rabbit.mat';
@@ -16,8 +16,8 @@ mask = uint8(mask);
 v_ind=find(mask>0);
 nn(:,3)=-nn(:,3);
 %     load light source info
-load('data/lighting/lights_89.txt');
-lights = reshape(lights_89,3,[])';
+lights = load(light_file);
+lights = reshape(lights,3,[])';
 light_number=size(lights,1);
 if (isldr == 1)&&(is_ae == 1)
     exposure_scale = zeros(light_number,1);
@@ -90,7 +90,7 @@ for i=1:light_number
 end
 
 if is_ae
-%     origin_I = origin_I./kron(ones(size(origin_I,1),1),exposure_scale');
+    origin_I = origin_I./kron(ones(size(origin_I,1),1),exposure_scale');
     e_matname = sprintf('%s/exposure_scale.mat',ae_path);
     save(e_matname,'exposure_scale');
 end
@@ -143,7 +143,9 @@ for i=1:size(I,1)
 end
 
 cos_error_vector= sum(normal_matrix.*nn,2);
+nan_size = size(find(isnan(cos_error_vector)),1);
 cos_error_vector(isnan(cos_error_vector))=1;
+
 norm_degree_error = sum(acos(cos_error_vector)/pi*180)/valid_pixel_count
 
 % [pic_height,pic_width]=size(mask);
