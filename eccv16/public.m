@@ -1,10 +1,11 @@
+function [I,L] = public(material_index)
 % load light
-lights_89 = load('../data/lighting/lights_89.txt');
-lights = reshape(lights_89,3,[])';
-lights(:,3)=-lights(:,3);
+lights = load('../data/lighting/lights_25.txt');
+lights = reshape(lights,3,[])';
+% lights(:,3) = -lights(:,3);
 L = lights;
 light_number=size(lights,1);
-rgb_path = '../data/images/rabbit_all/lights_89/hdr/91_6';
+rgb_path = sprintf('../data/images/rabbit_all/lights_25/hdr/%d_6',material_index);
 load('rabbit.mat');
 scale_width = 10; scale_height = 10;
 mask = mask>0;
@@ -28,12 +29,13 @@ for i = 0:light_number-1
     I(:,i+1) = slice_tiny(mask>0);
 end
 % scale on light
-if exist('random.mat')
-    load('random.mat');
+if exist('random_25.mat')
+    load('random_25.mat');
 else
     random = rand(light_number,1);
-    save('random.mat','random');
+    save('random_25.mat','random');
 end
 diff_percentage = 0.08;
 scale = 1-diff_percentage+2*random*diff_percentage;
 I = I.*kron(ones(valid_pixel_num,1),scale');
+end
