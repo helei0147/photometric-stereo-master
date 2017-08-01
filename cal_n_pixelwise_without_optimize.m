@@ -14,7 +14,6 @@ iter_max=100;
 load(sprintf('%s',mat_file));
 mask = uint8(mask);
 v_ind=find(mask>0);
-nn(:,3)=-nn(:,3);
 %     load light source info
 lights = load(light_file);
 lights = reshape(lights,3,[])';
@@ -23,7 +22,6 @@ if (isldr == 1)&&(is_ae == 1)
     exposure_scale = zeros(light_number,1);
 end
 light_true=lights;
-light_true(:,3)=-light_true(:,3);
 
 valid_pixel_count=size(v_ind,1);
 I = zeros(valid_pixel_count, light_number); % Image buffer to save 
@@ -93,6 +91,8 @@ if is_ae
     origin_I = origin_I./kron(ones(size(origin_I,1),1),exposure_scale');
     e_matname = sprintf('%s/exposure_scale.mat',ae_path);
     save(e_matname,'exposure_scale');
+else
+%     [origin_I, exposure] = random_exposure(origin_I,0.08);
 end
 % total_median = median(origin_I(:));
 % for i = 1:light_number
@@ -141,7 +141,7 @@ for i=1:size(I,1)
 %     fprintf('parameter error:%f\n',para_error);
 %     fprintf('iter: %d\n',iter);
 end
-
+show_normal(normal_matrix,mask,image_path);
 cos_error_vector= sum(normal_matrix.*nn,2);
 nan_size = size(find(isnan(cos_error_vector)),1);
 cos_error_vector(isnan(cos_error_vector))=1;
