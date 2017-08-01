@@ -1,8 +1,17 @@
-[I,L] = public(59);
+[I,L] = public(99);
+% mask_for_I = [3,5,6,7,9:19,21,23,25];
+% I = I(:,mask_for_I);
+% L = L(mask_for_I,:);
+light_number = size(L,1);
+pixel_number = size(I,1);
 y = linear_joint_dense(I,L);
-e = y(2680:end);
+e = y(pixel_number*3+1:end);
 e = e.^-1;
-b = y(1:2679);
+b = y(1:pixel_number*3);
+if sum(e)<0
+    e = -e;
+    b = -b;
+end
 n_ = reshape(b,3,[])';
 len = sum(n_.*n_,2);
 len = len.^0.5;
