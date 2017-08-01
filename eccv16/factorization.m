@@ -11,11 +11,12 @@ function [ normal ] = factorization( I, L )
     for i = 1:picked_num
         picked(i,:) = V(index(i),:);
     end
-    s = S.^(0.5);
-    re = det(s*picked);
-    if re<0
-        s = -s;
-    end
+    s = -S.^(0.5);
+%     re = det(s*picked);
+%     if re<0
+%         s = -s;
+%     end
+    
     S_cap = U*s;
     B_cap = (s*V')';
     % pick up 6 pixel with the same reflectance ratio
