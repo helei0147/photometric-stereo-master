@@ -1,0 +1,41 @@
+load('rabbit.mat');
+figure(3);
+imagesc(uint8((nn2+1)*128));
+title('RGB Normal Map');
+axis equal;
+width_scale = 10; height_scale = 10;
+mask1 = mask(1:height_scale:end,1:width_scale:end);
+mask1 = mask1>0;
+width = size(nn2,2);height = size(nn2,1);
+nn3 = zeros(ceil(height/height_scale),ceil(width/width_scale),3);
+slice1 = nn2(1:height_scale:end,1:width_scale:end,1);
+nn3(:,:,1) = slice1;
+slice2 = nn2(1:height_scale:end,1:width_scale:end,2);
+nn3(:,:,2) = slice2;
+slice3 = nn2(1:height_scale:end,1:width_scale:end,3);
+nn3(:,:,3) = slice3;
+pixel_num = size(find(mask1>0),1);
+new_nn = zeros(pixel_num,3);
+new_nn(:,1) = slice1(mask1);
+new_nn(:,2) = slice2(mask1);
+new_nn(:,3) = slice3(mask1);
+mask = mask1;
+nn = new_nn;
+% zz = zeros(size(nn3));
+% temp = zeros(size(nn3,1),size(nn3,2));
+% temp(mask1) = new_nn(:,1);zz(:,:,1) = temp;
+% temp(mask1) = new_nn(:,2);zz(:,:,2) = temp;
+% temp(mask1) = new_nn(:,3);zz(:,:,3) = temp;
+
+nn2 = nn3;
+
+figure(1);
+imagesc(uint8((nn2+1)*128));
+title('RGB Normal Map');
+axis equal;
+
+% figure(2);
+% imagesc(uint8((nn3+1)*128));
+% title('RGB Normal Map');
+% axis equal;
+save('rabbit_small.mat','mask','nn','nn2');
