@@ -1,11 +1,19 @@
 function [I,L] = public(material_index)
 % load light
-lights = load('../data/lighting/lights_25.txt');
-lights = reshape(lights,3,[])';
-% lights(:,3) = -lights(:,3);
-L = lights;
-light_number=size(lights,1);
-rgb_path = sprintf('../data/images/rabbit_all/lights_25/hdr/%d_6',material_index);
+random_light_flag = 1;
+if random_light_flag==0
+    lights = load('../data/lighting/lights_25.txt');
+    lights = reshape(lights,3,[])';
+    L = lights;
+    light_number=size(lights,1);
+    rgb_path = sprintf('../data/images/rabbit_all/lights_25/hdr/%d_6',material_index);
+else
+    lights = load('../data/lighting/lights_250.txt');
+    lights = reshape(lights,3,[])';
+    L = lights;
+    light_number=size(lights,1);
+    rgb_path = sprintf('../data/images/rabbit_25L_new/%d_6',material_index);
+end
 load('rabbit.mat');
 scale_width = 10; scale_height = 10;
 mask = mask>0;
@@ -35,7 +43,8 @@ else
     random = rand(light_number,1);
     save('random_25.mat','random');
 end
-diff_percentage = 0.08;
+diff_percentage = 0.33;
 scale = 1-diff_percentage+2*random*diff_percentage;
-I = I.*kron(ones(valid_pixel_num,1),scale');
+matrix = kron(ones(valid_pixel_num,1),scale'); 
+% I = I.*matrix;
 end
