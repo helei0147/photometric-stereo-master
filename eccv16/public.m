@@ -46,5 +46,5 @@ end
 diff_percentage = 0.33;
 scale = 1-diff_percentage+2*random*diff_percentage;
 matrix = kron(ones(valid_pixel_num,1),scale'); 
-% I = I.*matrix;
+I = I.*matrix;
 end
