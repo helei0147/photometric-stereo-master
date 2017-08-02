@@ -100,16 +100,27 @@ end
 %     origin_I(:,i) = auto_exposure(origin_I(:,i),total_median);
 % end
 
-for i = 1:light_number
-    gs_img = origin_I(:,i);
-    threshold_percent = 0.3;% pixels remain
-    sorted_img = sort(gs_img);
-    zero_num = size(find(sorted_img<1e-6),1);
-    p_num = size(sorted_img,1);
-    threshold = sorted_img(uint32((p_num-zero_num)*threshold_percent)+zero_num);
-    total_threshold(i) = threshold;
-    gs_img(gs_img>threshold)=-1;
-    I(:,i)=gs_img;
+% for i = 1:light_number
+%     gs_img = origin_I(:,i);
+%     threshold_percent = 0.3;% pixels remain
+%     sorted_img = sort(gs_img);
+%     zero_num = size(find(sorted_img<1e-6),1);
+%     p_num = size(sorted_img,1);
+%     threshold = sorted_img(uint32((p_num-zero_num)*threshold_percent)+zero_num);
+%     total_threshold(i) = threshold;
+%     gs_img(gs_img>threshold)=-1;
+%     I(:,i)=gs_img;
+% end
+T_low = 0.3;
+for i = 1:size(origin_I,1)
+    observations = origin_I(i,:);
+    observations(observations<1e-6) = -1;% remove shadows
+    remained = observations(observations>0);
+    remained_num = size(remained,2);
+    sorted = sort(remained);
+    threshold = sorted(ceil(remained_num*T_low));
+    observations(observations>threshold) = -1;
+    I(i,:) = observations;
 end
 normal_matrix = zeros(valid_pixel_count,3);
 total_error=0;
@@ -201,8 +212,8 @@ normal_matrix = interp_nan(normal_matrix);
 % show_normal(normal_matrix,mask,image_path);
 cos_error_vector= sum(normal_matrix.*nn,2);
 %------------------------------------------
-without_nan = 1;
-without_light_less_than_three_flag = 1;
+without_nan = 0;
+without_light_less_than_three_flag = 0;
 %------------------------------------------
 pixel_in_count = valid_pixel_count;
 
