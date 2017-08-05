@@ -1,16 +1,18 @@
-function [ y ] = linear_joint_dense( I, L )
+function [ y, valid_light_number ] = linear_joint_dense( I, L, T_low )
 %LINEAR_JOINT 此处显示有关此函数的摘要
 %   此处显示详细说明
 tic;
 %     cut off observations for each pixel which are more than T_low
-    T_low = 0.3;
+    valid_light_number = zeros(size(I(:,1)));
     for i = 1:size(I,1)
         observations = I(i,:);
         observations(observations<1e-6) = -1;% remove shadows(zero observations)
         remained = observations(observations>0);
         remained_num = size(remained,2);
         sorted = sort(remained);
-        threshold = sorted(ceil(remained_num*T_low));
+        index = ceil(remained_num*T_low);
+        valid_light_number(i) = index;
+        threshold = sorted(index);
         observations(observations>threshold) = -1;
         I(i,:) = observations;
     end
