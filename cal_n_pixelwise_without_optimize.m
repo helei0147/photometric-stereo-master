@@ -1,20 +1,15 @@
-function [ norm_degree_error, exposure_scale, nan_size ] = cal_n_pixelwise_without_optimize(image_path, light_file, mat_file, isldr, is_ae)
-% image_path='rabbit_all/lights_89/hdr/16_6';
-% light_file='lights_89.txt';
-% mat_file = 'rabbit.mat';
+function [ norm_degree_error, exposure_scale, parameter_buffer] = cal_n_pixelwise_without_optimize(image_path, light_file, mat_file, isldr, is_ae, T_low)
 exposure_scale = 0;
 curve = load('curve.txt');
 curve = curve(2:2:6,:);
-name = image_path;
 image_path = sprintf('data/images/%s',image_path);
 light_file = sprintf('data/lighting/%s', light_file);
 mat_file = sprintf('data/mats/%s',mat_file);
-iter_max=100;
 %     load mask
 load(sprintf('%s',mat_file));
 mask = mask>0;
 v_ind=find(mask>0);
-%     load light source info
+%%     load light source info
 lights = load(light_file);
 lights = reshape(lights,3,[])';
 light_number=size(lights,1);
@@ -22,9 +17,8 @@ if (isldr == 1)&&(is_ae == 1)
     exposure_scale = zeros(light_number,1);
 end
 light_true=lights;
-
+%% read in images
 valid_pixel_count=size(v_ind,1);
-I = zeros(valid_pixel_count, light_number); % Image buffer to save 
 % grayscale pixels. The third dimension is light index.
 ae_path = sprintf('ae/%s',image_path);
 
@@ -92,26 +86,18 @@ if is_ae
     e_matname = sprintf('%s/exposure_scale.mat',ae_path);
     save(e_matname,'exposure_scale');
 else
-%     load(sprintf('random_%d.mat',light_number));
-%     [origin_I, exposure] = random_exposure(origin_I,0.33,random_vec);
+    load(sprintf('random_%d.mat',light_number));
+    [origin_I, exposure] = random_exposure(origin_I,0.33,random_vec);
 end
-% total_median = median(origin_I(:));
-% for i = 1:light_number
-%     origin_I(:,i) = auto_exposure(origin_I(:,i),total_median);
-% end
 
-% for i = 1:light_number
-%     gs_img = origin_I(:,i);
-%     threshold_percent = 0.3;% pixels remain
-%     sorted_img = sort(gs_img);
-%     zero_num = size(find(sorted_img<1e-6),1);
-%     p_num = size(sorted_img,1);
-%     threshold = sorted_img(uint32((p_num-zero_num)*threshold_percent)+zero_num);
-%     total_threshold(i) = threshold;
-%     gs_img(gs_img>threshold)=-1;
-%     I(:,i)=gs_img;
-% end
-T_low = 0.3;
+%% select 50 lights and images for the following operations
+load('select_50.mat');
+random_50 = uint32(random_50);
+light_true = light_true(random_50,:);
+origin_I = origin_I(:,random_50);
+
+%% cut off observations with zero pixel value and more than T_low
+tic
 for i = 1:size(origin_I,1)
     observations = origin_I(i,:);
     observations(observations<1e-6) = -1;% remove shadows
@@ -122,26 +108,20 @@ for i = 1:size(origin_I,1)
     observations(observations>threshold) = -1;
     I(i,:) = observations;
 end
+fprintf('shadows and high frequency part cut off\n');
+toc;
+%% some containers and variables.
+parameter_buffer = zeros(valid_pixel_count,9);
 normal_matrix = zeros(valid_pixel_count,3);
-total_error=0;
-% high frequency part of I is cut-off
-para_num=9;
-parameter_buffer=zeros(valid_pixel_count,para_num);
 error_buffer = zeros(valid_pixel_count,1);
 t0 = cputime;
-not_valid_counter = 1;
-zero_counter = 0;
-one_counter = 0;
-two_counter = 0;
-three_counter = 0;
+optimized_count = 0;
+%% for every pixel get its normal using Frobenius-norm
 for i=1:size(I,1)
     if mod(i,1000)==0
         fprintf('pixel:%d, used up %f s\n',i,cputime-t0);
     end
     buffer=I(i,:);
-    if i==649
-        a = 1+1;
-    end
     buffer_mask=buffer>0; % a row mask
     valid_buffer=buffer(buffer_mask)'; % a column 
     valid_light=light_true(buffer_mask',:); % first dimension is light index, second dimension is x, y and z
@@ -152,59 +132,38 @@ for i=1:size(I,1)
     
     valid_L_num(i) = size(L,1);
     intense=valid_buffer;
-    
-    switch(size(L,1))
-        case 0
-            zero_counter = zero_counter+1;
-        case 1
-            one_counter = one_counter+1;
-        case 2
-            two_counter = two_counter+1;
-        otherwise
-            three_counter = three_counter+1;
-    end
     A = L.'*L;
     b = L.'*intense;
     n = A\b;
-    
 %     normalize the normal of this pixel
     n=n/norm(n); 
     normal_matrix(i,:)=n';
     pixel_error = acos(nn(i,:)*n)/pi*180;
     error_buffer(i) = pixel_error;
-    
-%     if (pixel_error<1)
-%         disp(pixel_error)
-%         L
-%         plot3(L(:,1),L(:,2),L(:,3),'ro');
-%         axis equal
-% %     end
-%     if (pixel_error>15)&&(size(L,1)>=4)
-%         disp(pixel_error)
-%         L
-%         plot3(L(:,1),L(:,2),L(:,3),'ro');
-%         axis equal
-%     end
-%     if size(find(isnan(n)>0),1)>0
-%         if size(L,1)>3
-%             
-%             disp(size(L,1));
-%             disp(L);
-%             l1 = cross(L(1,:),L(2,:));
-%             res = dot(l1,L(3,:));
-%             disp(res);
-%             disp_pos(mask,i);
-%         end
-%     end
-%     if size(find(isnan(n)>0),1)>0
-%         disp(L);
-%     end
 
-%     fprintf('pixel %d, error %f\n',i,pixel_error);
-%     fprintf('parameter error:%f\n',para_error);
-%     fprintf('iter: %d\n',iter);
+    to_solve = generate_to_solve(L,n);
+    light_intensity = L*n;
+    [parameter, para_error] = solve_parameter(to_solve,light_intensity,valid_buffer);
+    parameter_buffer(i,:) = parameter';
+
+%     for loop_count = 1:100
+%         fun = @(n)another_solve_n(n,L,valid_buffer,parameter);
+%         new_n = lsqnonlin(fun,n);
+%         new_n = normalize_vectors(new_n');
+%         error2 = cal_degree_error(new_n, nn(i,:));
+%         error1 = cal_degree_error(n', nn(i,:));
+%         n = new_n';
+%         if error1-error2<1e-5
+%             break;
+%         end
+%         to_solve = generate_to_solve(L,n);
+%         light_intensity = L*n;
+%         [parameter, para_error] = solve_parameter(to_solve,light_intensity,valid_buffer);
+%     end
+%     optimized_normal(i,:) = new_n;
+%     opt_count(i) = loop_count;
 end
-fprintf('%d %d %d %d',zero_counter,one_counter,two_counter,three_counter);
+%% calculate pixel normal error and analyse pixels with great error
 nan_size = size(find(isnan(normal_matrix(:,1))>0),1);
 nan_mask = isnan(normal_matrix(:,1))>0;
 C = [valid_L_num',error_buffer];
@@ -232,11 +191,5 @@ end
 cos_error_vector(cos_error_vector<0) = 0;
 
 norm_degree_error = sum(acos(cos_error_vector)/pi*180)/pixel_in_count;
-% norm_degree_error = sum(acos(cos_error_vector)/pi*180)/valid_pixel_count
-% [pic_height,pic_width]=size(mask);
-% first_dim_vector=floor(v_ind/pic_height)+1;
-% second_dim_vector=mod(v_ind,pic_height)+1;
-% pos_matrix=[first_dim_vector, second_dim_vector];
-% for ind=1:size(pos_matrix,1)
-%     g
+
 end
