@@ -33,7 +33,7 @@ end
 diff_percentage = 0.33;
 scale = 1-diff_percentage+2*random_89*diff_percentage;
 I = I.*kron(ones(valid_pixel_num,1),scale');
-load('select_50.mat');
-L = L(random_50,:);
-I = I(:,random_50);
+% load('select_50.mat');
+% L = L(random_50,:);
+% I = I(:,random_50);
 end
